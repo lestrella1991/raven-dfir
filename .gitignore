@@ -1,0 +1,29 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+.terraform.*
+
+
+# Local and sensitive variables
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+.env
+.env.*
+
+# Ansible
+*.retry
+*.yaml
+
+# Python
+__pycache__/
+*.pyc
+
+# Editors
+.vscode/
+.idea/

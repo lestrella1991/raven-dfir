@@ -1,0 +1,105 @@
+- name: Wait for apt/dpkg lock
+  become: true
+  ansible.builtin.shell: |
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || \
+          fuser /var/lib/dpkg/lock >/dev/null 2>&1 || \
+          fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
+      sleep 5
+    done
+  changed_when: false
+  timeout: 300
+
+- name: Set DNS
+  become: true
+  ansible.builtin.shell:
+    resolvectl dns eth0 8.8.8.8 <ip_gateway>
+
+- name: Instalar dependencias basicas
+  become: true
+  apt:
+    name:
+      - curl
+      - tar
+      - unzip
+      - gawk
+      - sed
+    state: present
+    update_cache: true
+
+- name: Verificar si existe archivo de RKE2
+  stat:
+    path: etc/rancher/rke2/rke2.yaml
+  register: rancherIsPresent
+
+- name: Instalar RKE2
+  become: true
+  ansible.builtin.shell: |
+    set -o pipefail
+    curl -sfL https://get.rke2.io | sh -
+  args:
+    executable: /bin/bash
+    creates: /usr/local/bin/rke2
+  notify:
+    - Reiniciar RKE2 Server
+
+- name: Asegurar que RKE2 esté habilitado e iniciado
+  become: true
+  ansible.builtin.systemd:
+    name: rke2-server
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Verificar que se haya creado Kubeconfig en el servidor
+  ansible.builtin.stat:
+    path: /etc/rancher/rke2/rke2.yaml
+  register: kubeIsPresentInServer
+
+- name: Modificar ip en kubeconfig
+  become: true
+  ansible.builtin.shell:
+    cmd: "sed -i 's/127.0.0.1/{{ controlnode_ip }}/g' /etc/rancher/rke2/rke2.yaml"
+  when: kubeIsPresentInServer.stat.exists
+
+- name: Verificar si existe archivo Kubeconfig en local
+  ansible.builtin.stat:
+    path: files/rke2.yaml
+  delegate_to: localhost
+  register: kubeIsPresent
+
+- name: obtener Kubeconfig
+  become: true
+  fetch:
+    src: /etc/rancher/rke2/rke2.yaml
+    dest: roles/rke2-agent/files/
+    flat: yes
+  when: not kubeIsPresent.stat.exists
+
+- name: Verificar si hay otros nodos
+  become: true
+  ansible.builtin.shell:
+    cmd: "[ $(/var/lib/rancher/rke2/bin/kubectl --kubeconfig='/etc/rancher/rke2/rke2.yaml' get nodes | wc -l ) -lt 4 ] && return 0"
+  register: validarNodos
+
+- name: obtener Token
+  become: true
+  ansible.builtin.shell:
+    cmd: "cat /var/lib/rancher/rke2/server/node-token"
+  register: getToken
+  when: validarNodos.rc == 0
+
+- name: crear achivo yaml de nodo agente
+  ansible.builtin.shell:
+    cmd: "echo 'server: https://{{ controlnode_ip }}:9345\ntoken: {{ getToken.stdout }}'   > /home/k8s/config.yaml"
+
+- name: obtener config para agentes
+  fetch:
+    src: /home/k8s/config.yaml
+    dest: "{{ agentOutputPath }}"
+    flat: yes
+
+
+
+
+
+  

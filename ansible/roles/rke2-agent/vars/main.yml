@@ -1,0 +1,6 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for ansible/roles/rancher-worker
+rke2_install_script: "https://get.rke2.io"
+node2: "{{ hostvars['node-2']['ansible_default_ipv4']['address'] }}"
+node3: "{{ hostvars['node-3']['ansible_default_ipv4']['address'] }}"

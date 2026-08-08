@@ -1,0 +1,32 @@
+- name: Desplegar rancher
+  hosts: control_plane
+  gather_facts: true
+  gather_subset:
+    - network
+  roles:
+    - rke2-server
+
+  pre_tasks:
+  
+  - name: Esperar a que el nodo central responda
+    ansible.builtin.wait_for_connection:
+      timeout: 900
+      sleep: 10
+      delay: 30
+
+- name: Unir nodos a rancher
+  hosts: workers
+  gather_facts: true
+  gather_subset:
+    - network
+  roles:
+    - rke2-agent
+
+  pre_tasks:
+  
+  - name: Esperar a que respondan los workers
+    ansible.builtin.wait_for_connection:
+      timeout: 900
+      sleep: 10
+      delay: 30
+  

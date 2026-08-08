@@ -1,0 +1,4 @@
+# vars file for roles/rancher
+rke2_install_script: "https://get.rke2.io"
+controlnode_ip: "{{ ansible_default_ipv4.address }}"
+agentOutputPath: "roles/rke2-agent/files/"

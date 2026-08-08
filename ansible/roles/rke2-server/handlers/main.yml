@@ -1,0 +1,10 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for roles/rancher
+- name: Reiniciar RKE2 Server
+  become: true
+  ansible.builtin.systemd:
+      name: rke2-server
+      state: restarted
+      daemon_reload: true
+      

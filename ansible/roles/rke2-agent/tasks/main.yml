@@ -1,0 +1,68 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/rancher-worker
+- name: Wait for apt/dpkg lock
+  become: true
+  ansible.builtin.shell: |
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || \
+          fuser /var/lib/dpkg/lock >/dev/null 2>&1 || \
+          fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
+      sleep 5
+    done
+  changed_when: false
+  timeout: 300
+
+- name: Set DNS
+  become: true
+  ansible.builtin.shell:
+    resolvectl dns eth0 8.8.8.8 <ip_gateway>
+
+- name: Instalar dependencias basicas
+  become: true
+  apt:
+    name:
+      - curl
+      - tar
+      - unzip
+      - gawk
+      - sed
+    state: present
+    update_cache: true
+
+- name: Verificar si existe archivo de RKE2
+  stat:
+    path: etc/rancher/rke2/rke2.yaml
+  register: rancherIsPresent
+
+- name: Instalar RKE2
+  become: true
+  ansible.builtin.shell: |
+    set -o pipefail
+    curl -sfL https://get.rke2.io | INSTALL_RKE2_TYPE="agent" sh -
+  args:
+    executable: /bin/bash
+    creates: /usr/local/bin/rke2
+  notify: Reiniciar RKE2 agent
+  
+
+- name: crear carpeta rke2
+  become: true
+  ansible.builtin.shell: |
+    mkdir -p /etc/rancher/rke2
+  
+
+- name: Copiar archivo to rke2
+  become: true
+  copy:
+    src: files/config.yaml
+    dest: /etc/rancher/rke2/
+
+
+- name: Asegurar que RKE2 esté habilitado e iniciado
+  become: true
+  ansible.builtin.systemd:
+    name: rke2-agent
+    enabled: true
+    state: started
+    daemon_reload: true
+
