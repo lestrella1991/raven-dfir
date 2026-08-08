@@ -69,7 +69,7 @@ flowchart LR
         <li>En el archivo <strong>deploy.sh</strong> definir el path de la variable <strong>DB</strong>, donde se aloja el proyecto</li>
     </ul>
     <li>En el archivo <strong>main.tf</strong> dentro de la carpeta <strong>terraform</strong>, cambiar el valor de la variable <strong>pm_api_url</strong></li>
-    <li>En el archivo <strong>cloud-init</strong> dentro de la carpeta <strong>terraform</strong>, cambiar los valores de las variables</li>
+    <li>En el archivo <strong>kubernetes</strong> dentro de la carpeta <strong>terraform</strong>, cambiar los valores de las variables</li>
     <ul>
         <li>valor de clone al id de la vm a clonar</li>
         <li>valor de target_node al nombre del nodo de proxmox</li>
